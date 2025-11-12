@@ -1,0 +1,62 @@
+# ==========================================
+# 🎧 Multimodal NLP for Sentiment Analysis
+# Using Text + Audio (Text + Whisper)
+# ==========================================
+
+# Step 2: Import Libraries
+import whisper
+from transformers import pipeline
+import gradio as gr
+
+# Step 3: Load Models
+sentiment_model = pipeline("sentiment-analysis")
+whisper_model = whisper.load_model("base")  # Options: tiny, base, small, medium, large
+
+# Step 4: Define Function
+def multimodal_sentiment(text_input, audio_file):
+    combined_text = ""
+    audio_text = ""
+
+    # If audio is provided, transcribe it
+    if audio_file is not None:
+        result = whisper_model.transcribe(audio_file)
+        audio_text = result["text"]
+        combined_text += audio_text
+
+    # If text input is provided, add it
+    if text_input and text_input.strip() != "":
+        combined_text += " " + text_input
+
+    # If no input at all
+    if combined_text.strip() == "":
+        return "⚠️ Please provide either text or an audio file."
+
+    # Run sentiment analysis
+    sentiment = sentiment_model(combined_text)
+    label = sentiment[0]["label"]
+    score = sentiment[0]["score"]
+
+    # ✅ Properly formatted multiline f-string
+    output = (
+        f"🗣 **Transcribed Text:** {audio_text}\n\n"
+        f"📝 **Combined Text:** {combined_text}\n\n"
+        f"💬 **Sentiment:** {label}\n"
+        f"🔥 **Confidence:** {score:.2f}"
+    )
+
+    return output
+
+# Step 5: Gradio Interface
+demo = gr.Interface(
+    fn=multimodal_sentiment,
+    inputs=[
+        gr.Textbox(label="Enter Text (optional)"),
+        gr.Audio(type="filepath", label="Upload Audio (optional)")
+    ],
+    outputs="text",
+    title="🎧 Multimodal NLP for Sentiment Analysis",
+    description="Analyze sentiment from text and/or audio using Whisper + Transformers."
+)
+
+# Step 6: Launch App
+demo.launch()
